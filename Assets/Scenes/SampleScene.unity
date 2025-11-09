@@ -269,10 +269,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 129af7a534324074281d6bb1c1278e74, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetRb: {fileID: 0}
-  position: {x: 20, y: 20}
-  fontSize: 18
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  playerRb: {fileID: 0}
+  playerTransform: {fileID: 0}
   showVerticalSpeed: 0
 --- !u!1 &410087039
 GameObject:
