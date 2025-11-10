@@ -18,6 +18,17 @@ public class FpsNewInput : MonoBehaviour
     public float airControl = 0.4f;
     public LayerMask groundMask = ~0;   // set in Inspector to Default/Ground only
 
+    // Add these fields near your other settings:
+    [Header("Grounding")]
+    public float groundCheckDistance = 0.2f;  // how far below feet to probe
+    public float maxSlopeAngle = 55f;         // anything steeper = not grounded
+    public bool debugGround = true;
+
+    // Optional: inspect these at runtime
+    Vector3 _groundNormal = Vector3.up;
+    float _groundSlope;
+
+
     Rigidbody rb;
     CapsuleCollider col;
     float pitch;
@@ -72,15 +83,23 @@ public class FpsNewInput : MonoBehaviour
         Vector3 newLateral = Vector3.MoveTowards(lateral, desired, accel * Time.fixedDeltaTime);
         rb.linearVelocity = newLateral + Vector3.up * vel.y;
 
-        // Jump
-        if (grounded && jumpQueued)
+        // Jump — only when grounded
+        if (grounded)
         {
-            jumpQueued = false;
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
-            // Debug
-            // Debug.Log("JUMP! grounded=true, applied v.y=" + jumpForce);
+            if (jumpQueued)
+            {
+                jumpQueued = false; // consume the input only on a valid jump
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+                // Debug.Log("Jumped!");
+            }
         }
+        else
+        {
+            // if in air, ignore any jump presses
+            jumpQueued = false;
+        }
+
 
         // Extra gravity for tighter fall
         rb.AddForce(Physics.gravity * 0.6f, ForceMode.Acceleration);
@@ -90,17 +109,51 @@ public class FpsNewInput : MonoBehaviour
 
     bool IsGrounded()
     {
-        // Check a capsule just slightly below feet against ONLY groundMask
-        float skin = 0.05f;
-        float r = Mathf.Max(0.01f, col.radius * 0.95f);
-        Vector3 p1 = transform.position + Vector3.up * (col.height * 0.5f - r);
-        Vector3 p2 = transform.position + Vector3.up * (r);
-        bool hit = Physics.CheckCapsule(p1, p2, r - 0.01f, groundMask, QueryTriggerInteraction.Ignore);
+        if (!col) col = GetComponent<CapsuleCollider>();
 
-        // Debug sanity
-        // if (Keyboard.current != null && Keyboard.current.spaceKey.isPressed)
-        //     Debug.Log($"Grounded={hit}, rb.constraints={rb.constraints}");
+        // World-space capsule endpoints based on collider settings
+        Vector3 center = transform.TransformPoint(col.center);
+        float radius = Mathf.Max(0.01f, col.radius - 0.02f); // shrink a hair to avoid self-hits
+        float half = Mathf.Max(0f, col.height * 0.5f - col.radius);
 
-        return hit;
+        Vector3 top = center + Vector3.up * half;
+        Vector3 bottom = center - Vector3.up * half;
+
+        // Start the cast just **above** the bottom to avoid starting inside ground
+        Vector3 castTop = top;
+        Vector3 castBottom = bottom + Vector3.up * 0.01f;
+
+        bool hitGround = Physics.CapsuleCast(
+            castTop, castBottom, radius,
+            Vector3.down, out RaycastHit hit,
+            groundCheckDistance,
+            groundMask,
+            QueryTriggerInteraction.Ignore
+        );
+
+        if (hitGround)
+        {
+            _groundNormal = hit.normal;
+            _groundSlope = Vector3.Angle(hit.normal, Vector3.up);
+
+            if (debugGround)
+            {
+                Debug.DrawLine(hit.point, hit.point + hit.normal * 0.5f, Color.cyan, 0, false);
+                Debug.DrawLine(bottom, bottom + Vector3.down * groundCheckDistance, Color.green, 0, false);
+            }
+
+            // Steep surfaces are NOT “ground”
+            return _groundSlope <= maxSlopeAngle;
+        }
+        else
+        {
+            if (debugGround)
+                Debug.DrawLine(bottom, bottom + Vector3.down * groundCheckDistance, Color.red, 0, false);
+
+            _groundNormal = Vector3.up;
+            _groundSlope = 0f;
+            return false;
+        }
     }
+
 }
