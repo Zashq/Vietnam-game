@@ -14,9 +14,11 @@ public class WPN_AKM : MonoBehaviour
     private bool isReloading = false;
 
     [Header("References")]
+    public Camera playerCam;
     public Transform muzzlePoint;
     public LayerMask hitMask;
     public GameObject bulletPrefab;
+    public GameObject impactPrefab;
 
     private float nextShootTime = 0f;
 
@@ -75,22 +77,42 @@ public class WPN_AKM : MonoBehaviour
     {
         currentAmmo--;
 
-        // Vizualis bullet
-        if (bulletPrefab != null && muzzlePoint != null)
-        {
-            Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
-        }
+        // CAMERA → CENTER RAY
+        Ray ray = playerCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        Vector3 targetPoint;
 
-        // Raycast találat
-        if (Physics.Raycast(muzzlePoint.position, muzzlePoint.forward, out RaycastHit hit, 200f, hitMask))
+        if (Physics.Raycast(ray, out RaycastHit hit, 500f, hitMask))
         {
-            Debug.Log("Hit " + hit.collider.name);
+            targetPoint = hit.point;
 
+            // IMPACT MARKER A TALÁLATI PONTNÁL
+            if (impactPrefab != null)
+            {
+                // orientáljuk a felület normálja szerint
+                Quaternion rot = Quaternion.LookRotation(hit.normal * -1f);
+                GameObject marker = Instantiate(impactPrefab, hit.point, rot);
+                Destroy(marker, 2f); // 2 mp múlva eltűnik
+            }
+
+            // DAMAGE
             Health hp = hit.collider.GetComponent<Health>();
             if (hp != null)
             {
                 hp.TakeDamage(30f);
             }
         }
+        else
+        {
+            targetPoint = ray.origin + ray.direction * 500f;
+        }
+
+        // VIZUÁLIS GOLYÓ A CSŐBŐL CÉLPONT FELÉ
+        if (bulletPrefab != null && muzzlePoint != null)
+        {
+            Vector3 dir = (targetPoint - muzzlePoint.position).normalized;
+            Instantiate(bulletPrefab, muzzlePoint.position, Quaternion.LookRotation(dir));
+        }
     }
+
+
 }
