@@ -1,4 +1,6 @@
+﻿using System.Collections;
 using UnityEngine;
+
 
 public class WPN_AKM : MonoBehaviour
 {
@@ -7,9 +9,14 @@ public class WPN_AKM : MonoBehaviour
     public int magazineSize = 30;
     public int currentAmmo;
 
+    [Header("Reload")]
+    public float reloadTime = 2.0f;       // reload delay
+    private bool isReloading = false;
+
     [Header("References")]
     public Transform muzzlePoint;
     public LayerMask hitMask;
+    public GameObject bulletPrefab;
 
     private float nextShootTime = 0f;
 
@@ -20,10 +27,34 @@ public class WPN_AKM : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButton(0)) // LEFT MOUSE HOLD
+        // ha épp reloadol → nem lőhetsz
+        if (isReloading) return;
+
+        // R → reload
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            if (currentAmmo < magazineSize)
+                StartCoroutine(Reload());
+        }
+
+        // lövés
+        if (Input.GetMouseButton(0))
         {
             TryShoot();
         }
+    }
+
+    IEnumerator Reload()
+    {
+        isReloading = true;
+        Debug.Log("Reloading...");
+
+        yield return new WaitForSeconds(reloadTime);
+
+        currentAmmo = magazineSize;
+        Debug.Log("Reload complete. Ammo refilled.");
+
+        isReloading = false;
     }
 
     void TryShoot()
@@ -31,11 +62,12 @@ public class WPN_AKM : MonoBehaviour
         if (Time.time < nextShootTime) return;
         if (currentAmmo <= 0)
         {
-            Debug.Log("CLICK � no ammo");
+            Debug.Log("CLICK – no ammo");
             return;
         }
 
         nextShootTime = Time.time + 60f / fireRate;
+
         Shoot();
     }
 
@@ -43,13 +75,22 @@ public class WPN_AKM : MonoBehaviour
     {
         currentAmmo--;
 
-        // Raycast
+        // Vizualis bullet
+        if (bulletPrefab != null && muzzlePoint != null)
+        {
+            Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
+        }
+
+        // Raycast találat
         if (Physics.Raycast(muzzlePoint.position, muzzlePoint.forward, out RaycastHit hit, 200f, hitMask))
         {
             Debug.Log("Hit " + hit.collider.name);
 
-            // ha van health
-            hit.collider.GetComponent<Health>()?.TakeDamage(30f);
+            Health hp = hit.collider.GetComponent<Health>();
+            if (hp != null)
+            {
+                hp.TakeDamage(30f);
+            }
         }
     }
 }

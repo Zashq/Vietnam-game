@@ -1441,6 +1441,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  bulletPrefab: {fileID: 4166864874587749314, guid: 3dc12a9a3a4ebc34eb2f7cbcf3c5473c, type: 3}
 --- !u!1 &1395916449 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100012, guid: 2dabd7a53b5a97445b5a23887b4fc4ce, type: 3}
