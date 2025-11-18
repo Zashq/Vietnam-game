@@ -49,6 +49,10 @@ public class FpsNewInput : MonoBehaviour
 
     void Update()
     {
+        // ha paused, semmit nem csinálunk
+        if (Time.timeScale == 0f)
+            return;
+
         // Look
         if (Mouse.current != null)
         {
@@ -65,6 +69,9 @@ public class FpsNewInput : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (Time.timeScale == 0f)
+            return;
+
         if (Keyboard.current == null) return;
 
         // Movement
