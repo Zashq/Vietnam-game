@@ -2,6 +2,11 @@
 
 public class WeaponManager : MonoBehaviour
 {
+    public Transform weaponHolder;     // where the weapon attaches
+    public float pickupDistance = 3f;
+
+    public Weapon currentWeapon;
+
     [Header("Weapons (order matters)")]
     public GameObject[] weapons;
 
@@ -46,6 +51,12 @@ public class WeaponManager : MonoBehaviour
         {
             PreviousWeapon();
         }
+
+        if (Input.GetKeyDown(KeyCode.G))
+            DropWeapon();
+
+        if (Input.GetKeyDown(KeyCode.E))
+            TryPickup();
     }
 
     void NextWeapon()
@@ -83,5 +94,38 @@ public class WeaponManager : MonoBehaviour
         }
 
         Debug.Log("WeaponManager: aktív fegyver = " + weapons[currentIndex].name);
+    }
+
+    void DropWeapon()
+    {
+        if (currentWeapon == null) return;
+
+        Weapon w = currentWeapon;
+        currentWeapon = null;
+
+        w.OnDrop();
+    }
+
+    void TryPickup()
+    {
+        // Raycast from camera forward
+        Camera cam = Camera.main;
+
+        if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, pickupDistance))
+        {
+            WeaponPickup pickup = hit.collider.GetComponent<WeaponPickup>();
+
+            if (pickup != null)
+            {
+                PickupWeapon(pickup.weaponData);
+                Destroy(pickup.gameObject); // remove ground mesh, equip the real weapon
+            }
+        }
+    }
+
+    void PickupWeapon(Weapon weapon)
+    {
+        currentWeapon = weapon;
+        weapon.OnEquip(weaponHolder);
     }
 }
