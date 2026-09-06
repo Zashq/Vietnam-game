@@ -28,6 +28,18 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene(gameSceneName);
     }
 
+    public void StartMultiplayer()
+    {
+        SceneManager.LoadScene("MultiplayerArena");
+    }
+
+    void OnGUI()
+    {
+        if (mainPanel != null && mainPanel.activeInHierarchy &&
+            GUI.Button(new Rect(Screen.width - 235, Screen.height - 65, 215, 45), "LAN Team Deathmatch"))
+            StartMultiplayer();
+    }
+
     public void QuitGame()
     {
         Debug.Log("QuitGame pressed");
